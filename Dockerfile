@@ -21,6 +21,7 @@ FROM us-central1-docker.pkg.dev/cloud-workstations-images/predefined/code-oss@sh
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
   make build-essential lld clang \
+  musl-tools \
   libssl-dev \
   pkg-config \
   postgresql-client \
