@@ -1,0 +1,65 @@
+name: Build image and push to Artifact Registry using Cloud Build
+
+on:
+  push:
+    branches:
+    - main
+
+# TODO Convert some (all?) variables to secrets so they do not show up in logs?
+env:
+  PROJECT_ID: my-cloud-workstations-417118
+  REGION: europe-west9
+  IMAGE_NAME: code-oss-for-rust
+  WORKLOAD_IDENTITY_PROVIDER: projects/249106907360/locations/global/workloadIdentityPools/github/providers/my-repo
+  SERVICE_ACCOUNT_NAME: cloud-builder # with roles `Cloud Build Service Account` and `Viewer`
+
+jobs:
+  cloud-build:
+    name: Setup, Build, and Push with Cloud Build
+    runs-on: ubuntu-latest
+
+    # Add "id-token" with the intended permissions.
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    # Checkout MUST come before auth.
+    - name: Checkout
+      id: checkout
+      uses: actions/checkout@v4
+
+    # Configure Workload Identity Federation and generate an access token.
+    - name: Authenticate to Google Cloud
+      id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ env.SERVICE_ACCOUNT_NAME }}@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+        token_format: access_token
+        create_credentials_file: true
+        access_token_lifetime: '100s'
+    
+    # Alternative option - authentication via credentials json.
+#    - name: Authenticate to Google Cloud
+#      id: auth
+#      uses: google-github-actions/auth@v0
+#      with:
+#        credentials_json: ${{ secrets.RUN_SA_KEY }}
+
+    - name: Set up Google Cloud CLI
+      uses: google-github-actions/setup-gcloud@v2
+    
+    # Only when `create_credentials_file` is `true`.
+    - name: Authenticate using credentials file
+      run: gcloud auth login --cred-file ${{ steps.auth.outputs.credentials_file_path }}
+
+    # The actual name of the SA might be redacted as *** as GitHub recognizes it as a secret.
+    - name: Confirm we are indeed authenticated
+      run: gcloud auth list
+
+    - name: Build image and push to Artifact Registry
+      run: |-
+        gcloud builds submit \
+          --quiet \
+          --tag "${REGION}-docker.pkg.dev/${PROJECT_ID}/docker/${IMAGE_NAME}:${GITHUB_SHA}"
