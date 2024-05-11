@@ -1,4 +1,4 @@
-name: Build image and push to Artifact Registry using Cloud Build
+name: Build, tag and push image to Artifact Registry using Cloud Build
 
 on:
   push:
@@ -12,7 +12,7 @@ env:
 
 jobs:
   cloud-build:
-    name: Setup, Build, and Push with Cloud Build
+    name: Cloud Build
     runs-on: ubuntu-latest
 
     # Add "id-token" with the intended permissions.
@@ -37,7 +37,7 @@ jobs:
     - name: Set up Google Cloud CLI
       uses: google-github-actions/setup-gcloud@v2
     
-    - name: Build, tag and push image to Artifact Registry with Cloud Build
+    - name: Submit build
       env:
         PROJECT_ID: ${{ secrets.PROJECT_ID }}
       run: |-
