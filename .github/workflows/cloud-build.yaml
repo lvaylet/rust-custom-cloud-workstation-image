@@ -5,12 +5,9 @@ on:
     branches:
     - main
 
-# TODO Convert some (all?) variables to secrets so they do not show up in logs?
 env:
-  PROJECT_ID: my-cloud-workstations-417118
   REGION: europe-west9
   IMAGE_NAME: code-oss-for-rust
-  WORKLOAD_IDENTITY_PROVIDER: projects/249106907360/locations/global/workloadIdentityPools/github/providers/my-repo
   SERVICE_ACCOUNT_NAME: cloud-builder # with roles `Cloud Build Service Account` and `Viewer`
 
 jobs:
@@ -34,13 +31,15 @@ jobs:
       id: auth
       uses: google-github-actions/auth@v2
       with:
-        workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
-        service_account: ${{ env.SERVICE_ACCOUNT_NAME }}@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+        workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ env.SERVICE_ACCOUNT_NAME }}@${{ secrets.PROJECT_ID }}.iam.gserviceaccount.com
     
     - name: Set up Google Cloud CLI
       uses: google-github-actions/setup-gcloud@v2
     
-    - name: Build image, tag and push to Artifact Registry
+    - name: Build, tag and push image to Artifact Registry with Cloud Build
+      env:
+        PROJECT_ID: ${{ secrets.PROJECT_ID }}
       run: |-
         gcloud builds submit \
           --quiet \
